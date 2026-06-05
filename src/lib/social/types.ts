@@ -20,10 +20,10 @@ export interface SocialBuzz {
   score: number;
   /** "quiet" | "normal" | "loud" — rough volume of chatter. */
   buzzLevel: "quiet" | "normal" | "loud";
-  /** A short narrative summary. From Claude if available, else rule-based. */
+  /** A short narrative summary. From an AI model if available, else rule-based. */
   summary: string;
   /** Which engine produced the summary/score. */
-  analyzedBy: "claude" | "rule-based";
+  analyzedBy: "gemini" | "claude" | "rule-based";
   /** A few representative posts for display. */
   samplePosts: SocialPost[];
   notes: string[];

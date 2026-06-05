@@ -1,12 +1,19 @@
 /**
- * Social-buzz orchestrator. Fetches free social posts, then scores them with
- * Claude if a key is present (richer summary), otherwise the free rule-based
- * scorer. Always returns a SocialBuzz; never throws on a source failure.
+ * Social-buzz orchestrator. Fetches free social posts, then scores them with an
+ * AI model for a richer summary, falling back gracefully. Precedence:
+ *
+ *   Gemini (free tier)  →  Claude (premium override)  →  rule-based (always works)
+ *
+ * Gemini is preferred because its free tier makes the summary $0/month; Claude
+ * runs only if Gemini is unavailable/fails but an ANTHROPIC_API_KEY is set.
+ * Always returns a SocialBuzz; never throws on a source failure.
  */
 
 import { fetchStockTwits } from "./sources";
 import { scoreRuleBased } from "./sentiment";
 import { analyzeWithClaude, claudeAvailable } from "./claude";
+import { analyzeWithGemini, geminiAvailable } from "./gemini";
+import type { AiSocialResult } from "./aiShared";
 import type { SocialBuzz, SocialPost } from "./types";
 
 function buzzLevelFromCount(n: number): SocialBuzz["buzzLevel"] {
@@ -43,23 +50,34 @@ export async function getSocialBuzz(ticker: string): Promise<SocialBuzz> {
 
   const buzzLevel = buzzLevelFromCount(posts.length);
 
-  // Try Claude for a richer score+summary; fall back to rule-based on any issue.
-  if (claudeAvailable()) {
+  // AI summary, preferring the free model. Each tier falls through to the next
+  // on failure, so a bad key or API hiccup never breaks the page.
+  const aiTiers: Array<{
+    name: "gemini" | "claude";
+    available: boolean;
+    run: () => Promise<AiSocialResult>;
+  }> = [
+    { name: "gemini", available: geminiAvailable(), run: () => analyzeWithGemini(ticker, posts) },
+    { name: "claude", available: claudeAvailable(), run: () => analyzeWithClaude(ticker, posts) },
+  ];
+
+  for (const tier of aiTiers) {
+    if (!tier.available) continue;
     try {
-      const c = await analyzeWithClaude(ticker, posts);
+      const ai = await tier.run();
       return {
         ticker: ticker.toUpperCase(),
         postCount: posts.length,
         breakdown,
-        score: c.score,
-        buzzLevel: c.buzzLevel,
-        summary: c.summary,
-        analyzedBy: "claude",
+        score: ai.score,
+        buzzLevel: ai.buzzLevel,
+        summary: ai.summary,
+        analyzedBy: tier.name,
         samplePosts: sample,
         notes,
       };
     } catch (err) {
-      notes.push(`Claude analysis failed, used rule-based instead: ${(err as Error).message}`);
+      notes.push(`${tier.name} analysis failed: ${(err as Error).message}`);
     }
   }
 

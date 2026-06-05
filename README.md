@@ -53,8 +53,13 @@ ticker ─▶ provider layer ─▶ ┌ DCF engine (owner earnings, 2-stage + te
 | Env var | Effect |
 | --- | --- |
 | `FMP_API_KEY` | Live fundamentals & prices (else sample data) |
-| `ANTHROPIC_API_KEY` | Social buzz uses Claude (Haiku) for a richer summary; else free rule-based |
+| `GEMINI_API_KEY` | Social buzz summary via Gemini (free tier) — the preferred AI path |
+| `ANTHROPIC_API_KEY` | Premium override: used only if Gemini is absent/fails. Else free rule-based |
 | `GOOGLE_SERVICE_ACCOUNT_FILE` / `_JSON` | Enables "Export DCF to Google Sheets" — see [GOOGLE_SHEETS_SETUP.md](GOOGLE_SHEETS_SETUP.md) |
+
+The social-buzz AI precedence is **Gemini → Claude → rule-based**: it prefers
+Gemini's free tier ($0), uses Claude only as a fallback if a Claude key is set,
+and always works (rule-based) with no keys at all.
 
 ## Known limitations (free-tier honesty)
 
