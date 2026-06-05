@@ -68,8 +68,9 @@ and always works (rule-based) with no keys at all.
   a paid options provider slot in behind `MarketDataProvider`.
 - **Social buzz is StockTwits-only** for now. Real X/Twitter API is ~$200/mo;
   Reddit now requires OAuth. Both can be added behind the `SocialPost` shape.
-- **Saved stocks use a local file store** (`/data`). On serverless hosts (Vercel)
-  the filesystem is ephemeral — swap in a KV store before deploying there.
+- **Saved stocks** use a local JSON file store in dev and **Vercel KV**
+  automatically when deployed (the code switches on the `KV_REST_API_*` env
+  vars). See [DEPLOY.md](DEPLOY.md) to put the site online.
 
 ## Roadmap
 
